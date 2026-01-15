@@ -5,10 +5,28 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Product;
+use App\Models\SaleItem;
 use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
+    // Show categories with products dashboard
+    public function dashboard()
+    {
+        $categories = Category::with(['products' => function($query) {
+            $query->withCount('saleItems');
+        }])->get()->map(function($category) {
+            $category->products->map(function($product) {
+                $product->total_sold = SaleItem::where('product_id', $product->id)->sum('quantity');
+                return $product;
+            });
+            return $category;
+        });
+
+        return view('categories.dashboard', compact('categories'));
+    }
+
     // Show all categories
     public function index()
     {

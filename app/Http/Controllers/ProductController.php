@@ -5,10 +5,24 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
+use App\Models\SaleItem;
 use Illuminate\Http\Request;
+
 
 class ProductController extends Controller
 {
+    // Display dashboard with products inventory
+    public function dashboard()
+    {
+        $products = Product::with('category')->get()->map(function($product) {
+            $totalSold = SaleItem::where('product_id', $product->id)->sum('quantity');
+            $product->total_sold = $totalSold;
+            return $product;
+        });
+        
+        return view('dashboard', compact('products'));
+    }
+
     // Display all products
     public function index()
     {
@@ -21,8 +35,12 @@ class ProductController extends Controller
     public function create()
     {
         $categories = Category::all(); // Get all categories
-        return view('products.create', compact('categories'));
+        $products = Product::all();  // Get all products from the database
+        return view('products.create', compact('categories', 'products'));  // Pass both to the view
     }
+
+    
+
 
     // Store a newly created product in the database
     // public function store(Request $request)
@@ -95,5 +113,21 @@ class ProductController extends Controller
     {
         $product->delete();
         return back()->with('success', 'Product deleted successfully.');
+    }
+
+    // Update price via AJAX
+    public function updatePrice(Request $request, Product $product)
+    {
+        $request->validate([
+            'price' => 'required|numeric|min:0',
+        ]);
+
+        $product->update(['price' => $request->price]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Price updated successfully',
+            'price' => $product->price
+        ]);
     }
 }

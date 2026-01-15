@@ -12,5 +12,17 @@ class Product extends Model
     protected $table = 'products';
 
     // Define the fillable attributes
-    protected $fillable = ['name', 'price', 'stock_quantity', 'category_id'];
+    protected $fillable = ['name', 'price', 'stock_quantity', 'category_id', 'barcode'];
+
+    // Define relationship with Category
+    public function category()
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    // Define relationship with SaleItems
+    public function saleItems()
+    {
+        return $this->hasMany(SaleItem::class);
+    }
 }
