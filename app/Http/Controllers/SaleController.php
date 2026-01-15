@@ -3,6 +3,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -62,13 +63,40 @@ class SaleController extends Controller
         $sales = Sale::with('user')->get();
         return view('sales.index', compact('sales'));
     }
-   
 
-public function printReceipt($saleId)
-{
-    $sale = Sale::findOrFail($saleId);
-    $pdf = PDF::loadView('sales.receipt', compact('sale'));
-    return $pdf->download('receipt.pdf');
-}
+    // Show a single sale with its items
+    public function show(Sale $sale)
+    {
+        $sale->load(['user', 'items.product']);
+        return view('sales.show', compact('sale'));
+    }
+
+    // Delete a sale
+    public function destroy(Sale $sale)
+    {
+        // Delete associated sale items first
+        $sale->items()->delete();
+        
+        // Restore product stock
+        foreach ($sale->items as $item) {
+            $product = Product::find($item->product_id);
+            if ($product) {
+                $product->stock_quantity += $item->quantity;
+                $product->save();
+            }
+        }
+        
+        // Delete the sale
+        $sale->delete();
+        
+        return redirect('/sales')->with('success', 'Sale deleted successfully!');
+    }
+   
+    public function printReceipt($saleId)
+    {
+        $sale = Sale::findOrFail($saleId);
+        $pdf = PDF::loadView('sales.receipt', compact('sale'));
+        return $pdf->download('receipt.pdf');
+    }
 
 }
